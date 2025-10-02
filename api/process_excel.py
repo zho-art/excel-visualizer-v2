@@ -5,6 +5,7 @@ import io
 import base64
 import json
 import traceback
+from datetime import datetime  # 替换pandas的Timestamp以减少依赖
 
 app = Flask(__name__)
 
@@ -20,7 +21,8 @@ class ExcelVisualizer:
             if filename.endswith('.csv'):
                 self.df = pd.read_csv(io.BytesIO(file_content))
             else:
-                self.df = pd.read_excel(io.BytesIO(file_content))
+                # 明确指定引擎以避免依赖问题
+                self.df = pd.read_excel(io.BytesIO(file_content), engine='openpyxl')
             
             print(f"成功读取数据，维度: {self.df.shape}")
             return True, "数据加载成功"
@@ -142,7 +144,7 @@ def health_check():
     return jsonify({
         'status': 'success',
         'message': 'Excel可视化API服务正常运行',
-        'timestamp': pd.Timestamp.now().isoformat()
+        'timestamp': datetime.now().isoformat()  # 使用标准库替代pandas的Timestamp
     })
 
 @app.route('/api/chart-types', methods=['GET'])
@@ -160,5 +162,9 @@ def get_chart_types():
         'chart_types': chart_types
     })
 
-# Vercel需要这个
-app = app
+# Vercel要求的应用入口
+if __name__ == '__main__':
+    app.run(debug=True)
+else:
+    # 生产环境使用的入口
+    application = app
